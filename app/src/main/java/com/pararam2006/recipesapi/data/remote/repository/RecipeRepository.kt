@@ -5,16 +5,16 @@ import com.pararam2006.recipesapi.data.remote.api.RecipesApi
 import com.pararam2006.recipesapi.data.remote.dto.RecipesNetworkDto
 import com.pararam2006.recipesapi.data.remote.mapper.toDomain
 import com.pararam2006.recipesapi.domain.dto.RecipesDto
+import kotlinx.coroutines.Dispatchers
 import retrofit2.Response
 
 class RecipeRepository(
     private val api: RecipesApi
 ) {
-    //    suspend fun getRandomRecipes(): RecipesDto = api.getRandomRecipes().toDomain()
-    suspend fun getRandomRecipes(): RecipesDto? {
+    suspend fun getRandomRecipes(): RecipesDto? = with(Dispatchers.IO) {
         try {
             val response: Response<RecipesNetworkDto> = api.getRandomRecipes()
-            Log.i("RecipeRepository", "${response.code()}: ${response.message()}")
+            Log.i("RecipeRepository", "${response.code()}")
             when (response.code()) {
                 200 -> { //OK
                     Log.i("RecipeRepository", "Все хорошо")

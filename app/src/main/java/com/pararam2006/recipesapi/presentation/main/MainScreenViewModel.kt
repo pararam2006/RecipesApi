@@ -8,16 +8,7 @@ import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pararam2006.recipesapi.domain.dto.AnalyzedInstructionDto
-import com.pararam2006.recipesapi.domain.dto.EquipmentDto
-import com.pararam2006.recipesapi.domain.dto.ExtendedIngredientDto
-import com.pararam2006.recipesapi.domain.dto.LengthDto
-import com.pararam2006.recipesapi.domain.dto.MeasureDto
-import com.pararam2006.recipesapi.domain.dto.MeasuresDto
 import com.pararam2006.recipesapi.domain.dto.RecipeDto
-import com.pararam2006.recipesapi.domain.dto.StepDto
-import com.pararam2006.recipesapi.domain.dto.StepIngredientDto
-import com.pararam2006.recipesapi.domain.dto.WinePairingDto
 import com.pararam2006.recipesapi.domain.usecase.GetRecipesUsecase
 import kotlinx.coroutines.launch
 

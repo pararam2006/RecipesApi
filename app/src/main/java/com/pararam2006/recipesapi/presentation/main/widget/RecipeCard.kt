@@ -31,14 +31,14 @@ fun RecipeCard(
             .width(400.dp)
             .graphicsLayer {
                 clip = true
-                shape = RoundedCornerShape(35)
+                shape = RoundedCornerShape(15)
             }
             .background(cardBackgroundPrimary),
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(AppPadding.medium),
             modifier = Modifier
-                .padding(AppPadding.medium)
+                .padding(bottom = AppPadding.medium)
                 .clickable(enabled = clickEnabled) { onClick() }
         ) {
             Image(
