@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">RecipesApi</string>
+
+    <string name="api_key">640ad4f250454e5496c95be441becf58</string>
+
+    <string name="main_screen_title">Recipes</string>
+    <string name="search_tab_title">What are we cooking today?</string>
+    <string name="categories_tab_title">Categories</string>
+    <string name="popular_recipes_tab_title">Popular recipes</string>
+
+    <string name="details_screen_title">Details</string>
+    <string name="ingredients_tab_title">Ingredients</string>
+    <string name="cooking_steps_tab_title">Cooking steps</string>
+    <string name="equipment_tab_title">Equipment</string>
+
+    <string name="unknown_screen_title">Неизвестный экран</string>
+    <string name="nav_icon_content_desctiption">Navigate back</string>
+
+    <string name="no_step_ingrediets_msg">No ingredients required</string>
+    <string name="no_equipment_msg">No equipment required</string>
+</resources>
