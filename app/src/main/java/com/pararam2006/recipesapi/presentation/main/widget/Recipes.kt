@@ -1,19 +1,29 @@
 package com.pararam2006.recipesapi.presentation.main.widget
 
 import android.util.Log
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -38,43 +48,97 @@ import kotlinx.serialization.json.Json
 
 @Composable
 fun Recipes(
-    recipes: List<RecipeDto>,
+    filteredRecipes: List<RecipeDto>, // Изменил параметр на filteredRecipes
     navController: NavController,
     onLoadMore: suspend () -> Unit,
     isLoading: Boolean,
 ) {
-    Text(
-        text = stringResource(R.string.popular_recipes_tab_title)
-    )
+    Column {
+        Text(
+            text = stringResource(R.string.popular_recipes_tab_title)
+        )
 
-    LazyColumn {
-        items(recipes) {
-            val recipeJson = Json.encodeToString(it)
-            RecipeCard(
-                recipe = it,
-                onClick = { navController.navigate(Routes.Details(recipeJson = recipeJson)) }
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-        }
-
-        item {
-            LaunchedEffect(Unit) {
-                if (!isLoading) {
-                    Log.d("Recipes.kt", "Запрос на подгрузку списка")
-                    withContext(Dispatchers.IO) {
-                        onLoadMore()
-                    }
-                }
-            }
-        }
-
-        if (isLoading) {
-            item {
+        when {
+            // Показываем индикатор загрузки только если список пуст и идет загрузка
+            filteredRecipes.isEmpty() && isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
+                }
+            }
+
+            // Показываем сообщение о пустом списке если нет данных и не идет загрузка
+            filteredRecipes.isEmpty() && !isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = stringResource(R.string.no_recipes_found),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = stringResource(R.string.no_recipes_description),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                    }
+                }
+            }
+
+            // Показываем список рецептов
+            else -> {
+                LazyColumn {
+                    items(filteredRecipes) { recipe ->
+                        val recipeJson = Json.encodeToString(recipe)
+                        RecipeCard(
+                            recipe = recipe,
+                            onClick = { navController.navigate(Routes.Details(recipeJson = recipeJson)) }
+                        )
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+
+                    // Подгружаем больше рецептов только если список не пустой
+                    item {
+                        LaunchedEffect(Unit) {
+                            if (!isLoading) {
+                                Log.d("Recipes.kt", "Запрос на подгрузку списка")
+                                withContext(Dispatchers.IO) {
+                                    onLoadMore()
+                                }
+                            }
+                        }
+                    }
+
+                    // Показываем индикатор загрузки внизу списка при дозагрузке
+                    if (isLoading) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -89,7 +153,7 @@ private fun RecipesPreview() {
             navController = rememberNavController(),
             onLoadMore = {},
             isLoading = false,
-            recipes = listOf(
+            filteredRecipes = listOf(
                 RecipeDto(
                     id = 716218,
                     title = "Tomato and Eggplant Caponata",

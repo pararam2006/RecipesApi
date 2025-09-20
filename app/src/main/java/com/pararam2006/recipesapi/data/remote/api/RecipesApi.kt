@@ -9,11 +9,6 @@ interface RecipesApi {
     @GET("recipes/random")
     suspend fun getRandomRecipes(
         @Query("number") number: Int = 20,
-        @Query("apiKey") apiKey: String = "640ad4f250454e5496c95be441becf58",
+        @Query("apiKey") apiKey: String = "ff91fa9b029c48dbab1b920baf682d8e",
     ): Response<RecipesNetworkDto>
-
-//    @GET("ingredients_100x100/{image}")
-//    suspend fun getIngredientIcon(
-//        @Path("image") image: String,
-//    ):
 }

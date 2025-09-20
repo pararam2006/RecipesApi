@@ -8,18 +8,19 @@ import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pararam2006.recipesapi.data.local.RecipeLocalDataSource
 import com.pararam2006.recipesapi.domain.dto.RecipeDto
 import com.pararam2006.recipesapi.domain.usecase.GetRecipesUsecase
 import kotlinx.coroutines.launch
 
 class MainScreenViewModel(
-    private val getRecipesUsecase: GetRecipesUsecase
+    private val getRecipesUsecase: GetRecipesUsecase,
+    private val localDataSource: RecipeLocalDataSource
 ) : ViewModel() {
     val TAG = "MainScreenViewModel"
     var input by mutableStateOf("")
         private set
 
-    //TODO Реализовать кэширование(можно через сохранение последнего списка в БД)
     var recipes = mutableStateListOf<RecipeDto>()
 
     var filteredRecipes = mutableStateListOf<RecipeDto>()
@@ -36,20 +37,79 @@ class MainScreenViewModel(
 
     fun changeInput(newText: String) {
         input = newText
+        updateFilteredRecipes()
+    }
+
+    // Объединенный метод для обновления отфильтрованного списка
+    private fun updateFilteredRecipes() {
         filterRecipesByCategory()
         filterRecipesByTitle()
     }
 
     private suspend fun getRecipes() {
         val res = getRecipesUsecase()
-        recipes.clear()
-        res?.recipes?.forEach {
-            recipes.add(it)
+        if (res != null) {
+            recipes.clear()
+            res.recipes.forEach {
+                recipes.add(it)
+            }
+            // Сохраняем в SharedPreferences при успешном получении данных из начальной загрузки
+            saveRecipesToCache(res.recipes)
+
+            // Важно: обновляем filteredRecipes после загрузки новых данных
+            getCategories()
+            updateFilteredRecipes()
         }
         Log.d(TAG, res.toString())
+    }
 
-        getCategories()
-        Log.d(TAG, categories.toString())
+    private suspend fun getMoreRecipesFromNetwork() {
+        // Используем новый метод с параметром skipCache = true для подгрузки новых рецептов
+        val newRecipes = getRecipesUsecase.invokeForMore()
+        val newUniqueRecipes = newRecipes?.recipes?.filter { newItem ->
+            recipes.none { existingItem ->
+                existingItem.id == newItem.id
+            }
+        }
+
+        if (!newUniqueRecipes.isNullOrEmpty()) {
+            recipes.addAll(newUniqueRecipes)
+            // Сохраняем обновленный список в кэш
+            saveRecipesToCache(recipes.toList())
+
+            // Важно: обновляем filteredRecipes после добавления новых рецептов
+            getCategories()
+            updateFilteredRecipes()
+        }
+
+        Log.d(TAG, "new recipes: $newRecipes")
+    }
+
+    private suspend fun loadRecipesFromCache() {
+        try {
+            val cachedRecipes = localDataSource.getSavedRecipes()
+            if (cachedRecipes.isNotEmpty()) {
+                recipes.clear()
+                recipes.addAll(cachedRecipes)
+                Log.d(TAG, "Загружено ${cachedRecipes.size} рецептов из кэша")
+                getCategories()
+                // Важно: обновляем filteredRecipes после загрузки из кэша
+                updateFilteredRecipes()
+            } else {
+                Log.d(TAG, "Кэш пуст")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Ошибка при загрузке из кэша: ${e.message}")
+        }
+    }
+
+    private suspend fun saveRecipesToCache(recipesList: List<RecipeDto>) {
+        try {
+            localDataSource.saveRecipes(recipesList)
+            Log.d(TAG, "Рецепты сохранены в кэш")
+        } catch (e: Exception) {
+            Log.e(TAG, "Ошибка при сохранении в кэш: ${e.message}")
+        }
     }
 
     fun getMoreRecipes() {
@@ -58,19 +118,8 @@ class MainScreenViewModel(
         viewModelScope.launch {
             isLoading = true
             try {
-                val newRecipes = getRecipesUsecase()
-                val newUniqueRecipes = newRecipes?.recipes?.filter { newItem ->
-                    recipes.none { existingItem ->
-                        existingItem.id == newItem.id
-                    }
-                }
-                recipes.addAll(newUniqueRecipes ?: emptyList())
-                getCategories()
-                filterRecipesByCategory()
-                filterRecipesByTitle()
-                Log.d(TAG, "new recipes:  $newRecipes")
+                getMoreRecipesFromNetwork()
             } catch (e: Exception) {
-                isLoading = false
                 Log.e(TAG, e.message.toString())
             } finally {
                 isLoading = false
@@ -110,24 +159,50 @@ class MainScreenViewModel(
     fun selectCategory(category: String) {
         if (category == selectedCategory) {
             unselectCategory()
-            filterRecipesByCategory()
-            filterRecipesByTitle()
         } else {
-            unselectCategory()
             selectedCategory = category
-            filterRecipesByCategory()
-            filterRecipesByTitle()
         }
+        updateFilteredRecipes()
     }
 
     private fun unselectCategory() {
         selectedCategory = ""
     }
 
+    fun refreshRecipes() {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                getRecipes()
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при обновлении рецептов: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun clearCache() {
+        viewModelScope.launch {
+            try {
+                localDataSource.clearAllRecipes()
+                recipes.clear()
+                filteredRecipes.clear()
+                categories.clear()
+                Log.d(TAG, "Кэш очищен")
+            } catch (e: Exception) {
+                Log.e(TAG, "Ошибка при очистке кэша: ${e.message}")
+            }
+        }
+    }
+
     init {
         viewModelScope.launch {
+            // Сначала загружаем данные из кэша, если они есть
+            loadRecipesFromCache()
+
+            // Затем пытаемся получить свежие данные из сети
             getRecipes()
-            getCategories()
         }
     }
 }

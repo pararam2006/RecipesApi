@@ -58,7 +58,7 @@ fun MainScreen(
         )
 
         Recipes(
-            recipes = recipes,
+            filteredRecipes = recipes,
             navController = navController,
             onLoadMore = onLoadMore,
             isLoading = isLoading,
