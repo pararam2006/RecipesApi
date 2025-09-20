@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.pararam2006.recipesapi.domain.dto.AnalyzedInstructionDto
@@ -34,6 +33,8 @@ fun MainScreen(
     onInputChange: (String) -> Unit,
     onCategorySelected: (String) -> Unit,
     navController: NavController,
+    onLoadMore: suspend () -> Unit,
+    isLoading: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val mediumPadding = AppPadding.medium
@@ -58,7 +59,9 @@ fun MainScreen(
 
         Recipes(
             recipes = recipes,
-            navController = navController
+            navController = navController,
+            onLoadMore = onLoadMore,
+            isLoading = isLoading,
         )
     }
 }
@@ -78,6 +81,8 @@ private fun MainScreenPreview() {
             ),
             onCategorySelected = {},
             navController = rememberNavController(),
+            onLoadMore = {},
+            isLoading = false,
             recipes = listOf(
                 RecipeDto(
                     id = 716218,

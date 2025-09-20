@@ -1,11 +1,17 @@
 package com.pararam2006.recipesapi.presentation.main.widget
 
+import android.util.Log
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,6 +31,8 @@ import com.pararam2006.recipesapi.domain.dto.StepIngredientDto
 import com.pararam2006.recipesapi.domain.dto.WinePairingDto
 import com.pararam2006.recipesapi.presentation.navigation.Routes
 import com.pararam2006.recipesapi.presentation.theme.RecipesApiTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -32,12 +40,13 @@ import kotlinx.serialization.json.Json
 fun Recipes(
     recipes: List<RecipeDto>,
     navController: NavController,
+    onLoadMore: suspend () -> Unit,
+    isLoading: Boolean,
 ) {
     Text(
         text = stringResource(R.string.popular_recipes_tab_title)
     )
 
-    //TODO Реализовать пагинацию
     LazyColumn {
         items(recipes) {
             val recipeJson = Json.encodeToString(it)
@@ -46,6 +55,28 @@ fun Recipes(
                 onClick = { navController.navigate(Routes.Details(recipeJson = recipeJson)) }
             )
             Spacer(modifier = Modifier.height(20.dp))
+        }
+
+        item {
+            LaunchedEffect(Unit) {
+                if (!isLoading) {
+                    Log.d("Recipes.kt", "Запрос на подгрузку списка")
+                    withContext(Dispatchers.IO) {
+                        onLoadMore()
+                    }
+                }
+            }
+        }
+
+        if (isLoading) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
         }
     }
 }
@@ -56,6 +87,8 @@ private fun RecipesPreview() {
     RecipesApiTheme {
         Recipes(
             navController = rememberNavController(),
+            onLoadMore = {},
+            isLoading = false,
             recipes = listOf(
                 RecipeDto(
                     id = 716218,

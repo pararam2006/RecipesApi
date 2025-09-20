@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 class MainScreenViewModel(
     private val getRecipesUsecase: GetRecipesUsecase
 ) : ViewModel() {
+    val TAG = "MainScreenViewModel"
     var input by mutableStateOf("")
         private set
 
@@ -30,11 +31,13 @@ class MainScreenViewModel(
     var selectedCategory by mutableStateOf("")
         private set
 
+    var isLoading by mutableStateOf(false)
+        private set
+
     fun changeInput(newText: String) {
         input = newText
-        val newFilteredRecipes = recipes.filter { it.title.contains(input, true) }
-        filteredRecipes.clear()
-        filteredRecipes.addAll(newFilteredRecipes)
+        filterRecipesByCategory()
+        filterRecipesByTitle()
     }
 
     private suspend fun getRecipes() {
@@ -43,27 +46,47 @@ class MainScreenViewModel(
         res?.recipes?.forEach {
             recipes.add(it)
         }
-        Log.d("MainScreenViewModel", res.toString())
+        Log.d(TAG, res.toString())
 
         getCategories()
-        Log.d("MainScreenViewModel", categories.toString())
+        Log.d(TAG, categories.toString())
     }
 
-    //Если выбрана какая-то категория, фильтрует filteredRecipes, если нет - recipes
-    private fun filterRecipesByTitle() {
-        if (selectedCategory.isNotEmpty()) {
-            val filtered = filteredRecipes.filter { it.title.contains(input, true) }
-            filteredRecipes.clear()
-            filteredRecipes.addAll(filtered)
-        } else {
-            val filtered = recipes.filter { it.title.contains(input, true) }
-            filteredRecipes.clear()
-            filteredRecipes.addAll(filtered)
+    fun getMoreRecipes() {
+        if (isLoading) return
+
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val newRecipes = getRecipesUsecase()
+                val newUniqueRecipes = newRecipes?.recipes?.filter { newItem ->
+                    recipes.none { existingItem ->
+                        existingItem.id == newItem.id
+                    }
+                }
+                recipes.addAll(newUniqueRecipes ?: emptyList())
+                getCategories()
+                filterRecipesByCategory()
+                filterRecipesByTitle()
+                Log.d(TAG, "new recipes:  $newRecipes")
+            } catch (e: Exception) {
+                isLoading = false
+                Log.e(TAG, e.message.toString())
+            } finally {
+                isLoading = false
+            }
         }
-
     }
 
-    //Если категория уже выбрана, то отменяет выбор, а если нет - делает его
+    private fun filterRecipesByTitle() {
+        if (input.isNotEmpty()) {
+            val currentFiltered = ArrayList(filteredRecipes)
+            val furtherFiltered = currentFiltered.filter { it.title.contains(input, true) }
+            filteredRecipes.clear()
+            filteredRecipes.addAll(furtherFiltered)
+        }
+    }
+
     private fun filterRecipesByCategory() {
         if (selectedCategory.isNotEmpty()) {
             val filtered = recipes.filter { it.dishTypes.contains(selectedCategory) }
@@ -88,10 +111,12 @@ class MainScreenViewModel(
         if (category == selectedCategory) {
             unselectCategory()
             filterRecipesByCategory()
+            filterRecipesByTitle()
         } else {
             unselectCategory()
             selectedCategory = category
             filterRecipesByCategory()
+            filterRecipesByTitle()
         }
     }
 
@@ -102,7 +127,6 @@ class MainScreenViewModel(
     init {
         viewModelScope.launch {
             getRecipes()
-            filterRecipesByTitle()
             getCategories()
         }
     }

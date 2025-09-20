@@ -104,7 +104,9 @@ class MainActivity : ComponentActivity() {
                                 categories = vm.categories.toList(),
                                 modifier = Modifier.padding(innerPadding),
                                 onCategorySelected = vm::selectCategory,
-                                navController = navController
+                                navController = navController,
+                                onLoadMore = vm::getMoreRecipes,
+                                isLoading = vm.isLoading,
                             )
                         }
 
